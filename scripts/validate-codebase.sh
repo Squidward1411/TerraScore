@@ -305,12 +305,15 @@ if [ -d ".git" ]; then
     info "Total commits: $COMMITS"
 
     # Check for uncommitted changes
-    if git diff-index --quiet HEAD --; then
+    set +e  # Temporarily disable exit on error
+    git diff-index --quiet HEAD -- 2>/dev/null
+    if [ $? -eq 0 ]; then
         success "Working directory is clean"
     else
         info "You have uncommitted changes"
-        ((WARNINGS++))
+        WARNINGS=$((WARNINGS + 1))
     fi
+    set -e  # Re-enable exit on error
 else
     error "Not a git repository"
     ((ERRORS++))
@@ -367,18 +370,18 @@ fi
 echo ""
 section "15. Verifying API Endpoints..."
 
-if grep -q "router.include_router(auth.router" backend/app/main.py 2>/dev/null; then
+if grep -q "router.include_router(auth.router" backend/app/main.py 2>/dev/null || true; then
     success "Auth endpoints registered"
 else
     info "Could not verify auth endpoints (file may use different import style)"
-    ((WARNINGS++))
+    WARNINGS=$((WARNINGS + 1))
 fi
 
-if grep -q "router.include_router(parcels.router" backend/app/main.py 2>/dev/null; then
+if grep -q "router.include_router(parcels.router" backend/app/main.py 2>/dev/null || true; then
     success "Parcel endpoints registered"
 else
     info "Could not verify parcel endpoints (file may use different import style)"
-    ((WARNINGS++))
+    WARNINGS=$((WARNINGS + 1))
 fi
 
 # Final Summary
